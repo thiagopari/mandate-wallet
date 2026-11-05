@@ -1,5 +1,8 @@
 # Mandate Wallet
 
+**Live demo:** https://mandate-wallet.onrender.com (PayPal sandbox only). Click **Use demo wallet**
+to skip the sandbox login. It runs on a free instance, so the first load can take about a minute.
+
 An AI shopping agent (Claude) spends from the owner's real PayPal wallet, but only inside a
 **mandate** the owner signed: a budget, a per-purchase cap, allowed categories and merchants, and
 an expiry. Every purchase passes a deterministic **gate** (plain code, not the model) before any
