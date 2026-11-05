@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Mandate Wallet</title></head>
+<body>
+<h1>Mandate Wallet</h1>
+<p>Backend placeholder page. Live state below (needs an <code>X-Session</code> header to be meaningful).</p>
+<pre id="state">loading /api/state ...</pre>
+<script>
+  const s = localStorage.getItem("session") || (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "");
+  localStorage.setItem("session", s);
+  fetch("/api/state", {headers: {"X-Session": s}}).then(r => r.json())
+    .then(d => document.getElementById("state").textContent = JSON.stringify(d, null, 2))
+    .catch(e => document.getElementById("state").textContent = String(e));
+</script>
+</body>
+</html>
