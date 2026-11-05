@@ -60,7 +60,7 @@ class FakeClaude:
             for name, res in out:
                 if name == "purchase":
                     lines.append(f"{res.get('outcome', '?')} ({res.get('reason', '')})"
-                                 + (f" ${res.get('amount')}" if res.get("amount") is not None else ""))
+                                 + (f" ${res['amount'] / 100:.2f}" if res.get("amount") is not None else ""))
             return text("Here's what happened: " + "; ".join(lines) + "." if lines
                         else "I checked the mandate; tell me what to buy.")
         said = " ".join(b["text"] for b in last if isinstance(b, dict) and b.get("type") == "text")
