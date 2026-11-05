@@ -1,16 +1,579 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Mandate Wallet</title></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f6f8">
+<link rel="icon" href="data:,">
+<title>Mandate Wallet</title>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@36.2.0/dist/ag-grid-community.min.js"></script>
+<style>
+  :root {
+    color-scheme: light dark;
+    --accent: #0f5c7a; --accent-strong: #0b4b65; --ink: #142a38; --muted: #617380;
+    --line: #dce5e9; --bg: #f3f6f7; --card: #fff; --soft: #f7fafb; --green: #176b47;
+    --green-bg: #e8f5ee; --amber: #8a5a00; --amber-bg: #fff4d6; --red: #a72d32;
+    --red-bg: #fff0ef; --gray-bg: #edf1f3; --shadow: 0 3px 14px rgb(16 45 58 / 6%);
+  }
+  * { box-sizing: border-box; }
+  html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; }
+  body { margin: 0; color: var(--ink); background: var(--bg); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  button, input, textarea { font: inherit; }
+  button { min-height: 44px; }
+  button:disabled { opacity: .55; cursor: wait; }
+  :focus-visible { outline: 3px solid #2e9bc1; outline-offset: 2px; }
+  .topbar { padding: 17px 24px; color: #fff; background: #142a38; }
+  .topbar-inner { max-width: 1600px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .brand h1 { margin: 0; font-size: 21px; letter-spacing: -.3px; }
+  .brand p { margin: 1px 0 0; color: #c3d2da; font-size: 13px; }
+  .header-pills { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+  .header-pill { display: inline-flex; min-height: 28px; padding: 4px 10px; align-items: center; border: 1px solid #557080; border-radius: 999px; color: #e8f2f6; background: #203c4b; font-size: 11px; font-weight: 650; white-space: nowrap; }
+  .header-pill.live { color: #d6f3e3; border-color: #478164; background: #204a39; }
+  main { width: min(1600px, 100%); margin: auto; padding: 18px 24px 30px; }
+  #errorBanner { display: none; margin: 0 0 14px; padding: 9px 12px; border: 1px solid #e8b7b7; border-radius: 9px; color: var(--red); background: var(--red-bg); font-size: 13px; }
+  #errorBanner.visible { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  #errorText { overflow-wrap: anywhere; }
+  .dismiss { min-width: 44px; min-height: 44px; padding: 2px 8px; border: 0; border-radius: 6px; color: inherit; background: transparent; cursor: pointer; }
+  .columns { display: grid; grid-template-columns: minmax(265px, .92fr) minmax(325px, 1.13fr) minmax(290px, 1fr); align-items: start; gap: 14px; }
+  .column { min-width: 0; display: grid; gap: 14px; }
+  .card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .card h2 { margin: 0; font-size: 15px; line-height: 1.3; letter-spacing: -.1px; }
+  .card h3 { margin: 0; font-size: 13px; }
+  .subtle { color: var(--muted); font-size: 12px; }
+  .wallet-email { margin: 0 0 4px; font-weight: 650; overflow-wrap: anywhere; }
+  .wallet-actions { display: grid; gap: 8px; margin-top: 13px; }
+  .btn { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border: 1px solid transparent; border-radius: 8px; color: #fff; background: var(--accent); font-weight: 650; text-align: center; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+  .btn:hover:not(:disabled) { background: var(--accent-strong); }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn.secondary { color: var(--ink); border-color: var(--line); background: var(--card); }
+  .btn.secondary:hover:not(:disabled) { background: var(--soft); }
+  .btn.danger { color: #fff; background: #a72d32; }
+  .btn.danger:hover:not(:disabled) { background: #8e2227; }
+  .btn.success { color: #fff; background: #176b47; }
+  .btn.small { min-height: 44px; padding: 6px 10px; font-size: 12px; }
+  .btn.text { min-height: 44px; padding: 5px 7px; color: var(--accent); background: transparent; }
+  .tag, .pill { display: inline-flex; min-height: 25px; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; line-height: 1.25; font-weight: 700; }
+  .tag { color: var(--muted); background: var(--gray-bg); }
+  .pill.paid { color: var(--green); background: var(--green-bg); }
+  .pill.pending { color: var(--amber); background: var(--amber-bg); }
+  .pill.blocked, .pill.failed { color: var(--red); background: var(--red-bg); }
+  .pill.refunded, .pill.declined { color: #55656e; background: var(--gray-bg); }
+  .mandate-status { text-transform: capitalize; }
+  .terms { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 12px 0; }
+  .term { padding: 9px; border-radius: 8px; background: var(--soft); }
+  .term span { display: block; color: var(--muted); font-size: 11px; }
+  .term strong { display: block; margin-top: 2px; font-size: 13px; overflow-wrap: anywhere; }
+  .budget-box { padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+  .remaining-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .remaining { margin: 1px 0 5px; font-size: clamp(25px, 2.3vw, 34px); line-height: 1.15; letter-spacing: -1px; font-weight: 720; font-variant-numeric: tabular-nums; }
+  .meter { height: 8px; overflow: hidden; border-radius: 999px; background: var(--line); }
+  .meter > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease; }
+  .budget-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .signature-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 13px; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; overflow-wrap: anywhere; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field { display: grid; gap: 5px; min-width: 0; }
+  .field.full { grid-column: 1 / -1; }
+  .field > label, .group-label { color: var(--muted); font-size: 12px; font-weight: 650; }
+  input[type="number"], input[type="search"], input[type="text"], textarea { width: 100%; min-width: 0; min-height: 44px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--card); }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  fieldset { min-width: 0; margin: 2px 0 0; padding: 0; border: 0; }
+  fieldset legend { margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 650; }
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+  .check-option { display: flex; min-height: 44px; align-items: center; gap: 7px; color: var(--ink); font-size: 12px; }
+  .check-option input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); flex: 0 0 auto; }
+  .group-note { margin: 0 0 4px; color: var(--muted); font-size: 11px; }
+  .chat-card { display: flex; min-height: 570px; height: min(720px, calc(100vh - 112px)); max-height: 780px; flex-direction: column; }
+  .chat-card .card-head { flex: 0 0 auto; }
+  #chatMessages { min-height: 0; flex: 1 1 auto; overflow: auto; display: flex; flex-direction: column; gap: 13px; padding: 3px 2px 12px; overscroll-behavior: contain; }
+  .empty-chat { margin: auto 12px; color: var(--muted); text-align: center; }
+  .bubble-row { display: flex; flex-direction: column; align-items: flex-start; max-width: 94%; }
+  .bubble-row.owner { align-self: flex-end; align-items: flex-end; }
+  .speaker { margin: 0 0 3px 3px; color: var(--muted); font-size: 10px; font-weight: 650; }
+  .bubble { padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px 12px 12px 3px; color: var(--ink); background: var(--soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .owner .bubble { border-color: #c9e3ec; border-radius: 12px 12px 3px 12px; background: #e9f5f8; }
+  .tool-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 0 2px; }
+  .tool-chip { padding: 3px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--card); font-size: 10px; }
+  .typing { display: inline-flex; gap: 4px; align-items: center; padding: 11px 12px; border-radius: 12px 12px 12px 3px; background: var(--soft); }
+  .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: blink 1s infinite alternate; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { to { opacity: .25; transform: translateY(-2px); } }
+  .prompt-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .prompt-chip { min-height: 44px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent); background: var(--card); font-size: 11px; cursor: pointer; }
+  .prompt-chip:hover:not(:disabled) { border-color: var(--accent); background: var(--soft); }
+  .chat-form { display: flex; align-items: flex-end; gap: 7px; padding-top: 3px; }
+  .chat-form textarea { min-height: 44px; height: 44px; max-height: 120px; resize: vertical; }
+  .chat-form .btn { flex: 0 0 76px; }
+  .gate-list { display: grid; gap: 10px; }
+  .decision { padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .decision-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .decision-title { min-width: 0; }
+  .decision-title strong { display: block; font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+  .decision-title small { color: var(--muted); font-size: 10px; }
+  .decision-amount { margin: 9px 0 3px; font-size: 21px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .item-lines { color: var(--muted); font-size: 12px; }
+  .reason-line { margin-top: 7px; font-size: 12px; }
+  .reason-line strong { font-weight: 700; }
+  details.check-details { margin-top: 9px; border-top: 1px solid var(--line); padding-top: 8px; }
+  details summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-size: 11px; font-weight: 650; cursor: pointer; }
+  .check-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin: 5px 0 0; padding: 0; list-style: none; }
+  .check-list li { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; }
+  .check-icon { width: 16px; flex: 0 0 16px; font-weight: 800; }
+  .check-icon.ok { color: var(--green); } .check-icon.no { color: var(--red); }
+  .decision-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .empty-state { padding: 22px 10px; color: var(--muted); text-align: center; font-size: 12px; }
+  .bottom { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr); gap: 14px; margin-top: 14px; }
+  .ledger-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .ledger-head input { max-width: 260px; }
+  #ledgerGrid { width: 100%; min-height: 175px; }
+  .redteam-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .redteam-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+  .redteam-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 13px 0; }
+  .headline-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 12px 0; }
+  .headline-tiles.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .headline-tile { min-width: 0; padding: 9px; border-radius: 8px; background: var(--soft); }
+  .headline-tile strong { display: block; font-size: 16px; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .headline-tile span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.3; }
+  .table-wrap { max-width: 100%; overflow-x: auto; }
+  .cases { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .cases th, .cases td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .cases th { color: var(--muted); font-size: 10px; font-weight: 650; }
+  .pass { color: var(--green); font-weight: 750; } .fail { color: var(--red); font-weight: 750; }
+  .agent-case { padding: 10px 0; border-top: 1px solid var(--line); }
+  .agent-case:first-child { border-top: 0; }
+  .agent-case strong { font-size: 12px; }
+  .agent-case p { margin: 4px 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+  .attempts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .attempt { padding: 3px 6px; border-radius: 6px; color: var(--muted); background: var(--gray-bg); font-size: 10px; overflow-wrap: anywhere; }
+  dialog { width: min(680px, calc(100% - 24px)); max-height: min(88vh, 900px); padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--card); box-shadow: 0 24px 80px rgb(0 0 0 / 28%); }
+  dialog::backdrop { background: rgb(12 28 38 / 62%); backdrop-filter: blur(2px); }
+  .modal-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 17px 19px; border-bottom: 1px solid var(--line); background: var(--card); }
+  .modal-head h2 { margin: 0; font-size: 18px; }
+  .modal-body { padding: 17px 19px 20px; }
+  .verify-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 15px; }
+  .verify-check { padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 650; }
+  .verify-check.ok { color: var(--green); background: var(--green-bg); }
+  .verify-check.no { color: var(--red); background: var(--red-bg); }
+  .receipt-amount { margin: 3px 0 10px; font-size: 28px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .receipt-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 13px 0; }
+  .receipt-details > div { min-width: 0; padding: 9px; border-radius: 8px; background: var(--soft); }
+  .receipt-details span { display: block; color: var(--muted); font-size: 10px; }
+  .receipt-details strong { display: block; margin-top: 2px; font-size: 11px; overflow-wrap: anywhere; }
+  .key-list { display: grid; gap: 5px; margin-top: 13px; }
+  .key-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: start; }
+  .key-row span { color: var(--muted); font-size: 11px; }
+  .key-row code { overflow-wrap: anywhere; }
+  .receipt-actions { display: flex; gap: 8px; margin-top: 15px; }
+  details.raw { margin-top: 15px; }
+  details.raw pre { max-height: 260px; overflow: auto; padding: 10px; border-radius: 8px; background: var(--soft); font-size: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 1200px) {
+    main { padding-right: 16px; padding-left: 16px; }
+    .columns { grid-template-columns: minmax(245px, .9fr) minmax(300px, 1.05fr) minmax(265px, .95fr); gap: 10px; }
+    .card { padding: 13px; }
+    .bottom { grid-template-columns: minmax(0, 1.2fr) minmax(340px, 1fr); gap: 10px; }
+  }
+  @media (max-width: 900px) {
+    .topbar { padding: 15px 16px; }
+    .topbar-inner { align-items: flex-start; flex-direction: column; gap: 10px; }
+    .header-pills { justify-content: flex-start; }
+    main { padding: 13px 12px 24px; }
+    .columns { grid-template-columns: minmax(0, 1fr); }
+    .column { grid-template-columns: minmax(0, 1fr); }
+    .chat-card { min-height: 510px; height: 68vh; max-height: 720px; }
+    .bottom { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .card { padding: 13px; }
+    .headline-tiles { grid-template-columns: 1fr 1fr; }
+    .headline-tiles.four { grid-template-columns: 1fr 1fr; }
+    .ledger-head { align-items: stretch; flex-direction: column; }
+    .ledger-head input { max-width: none; }
+    .verify-grid, .receipt-details { grid-template-columns: 1fr; }
+    .decision-actions .btn { flex: 1 1 auto; }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark; --accent: #53b4d4; --accent-strong: #80cce4; --ink: #e1e9ed;
+      --muted: #a5b5be; --line: #344650; --bg: #101a20; --card: #18262e; --soft: #1e303a;
+      --green: #8bd0a9; --green-bg: #203e31; --amber: #f1c96b; --amber-bg: #43371d;
+      --red: #ff9995; --red-bg: #482728; --gray-bg: #2c3a42; --shadow: 0 3px 14px rgb(0 0 0 / 16%);
+    }
+    .topbar { background: #0a1217; }
+    .header-pill { color: #e3edf2; border-color: #435c68; background: #192d37; }
+    .header-pill.live { color: #c6f1d7; border-color: #427456; background: #183b2d; }
+    .owner .bubble { border-color: #315969; background: #203b47; }
+    .btn.secondary { color: var(--ink); }
+    .btn.text { color: var(--accent); }
+    .btn.danger { color: #fff; }
+    .btn.success { color: #fff; }
+  }
+</style>
+</head>
 <body>
-<h1>Mandate Wallet</h1>
-<p>Backend placeholder page. Live state below (needs an <code>X-Session</code> header to be meaningful).</p>
-<pre id="state">loading /api/state ...</pre>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><h1>Mandate Wallet</h1><p>Your agent shops. Your mandate decides.</p></div>
+    <div id="headerPills" class="header-pills" aria-label="Connection and model status"><span class="header-pill">Loading…</span></div>
+  </div>
+</header>
+<main>
+  <div id="errorBanner" role="alert" aria-live="assertive"><span id="errorText"></span><button class="dismiss" type="button" data-action="dismiss-error" aria-label="Dismiss error">×</button></div>
+  <div class="columns">
+    <section class="column" aria-label="Wallet and mandate">
+      <div id="walletCard"></div>
+      <div id="mandateCard"></div>
+    </section>
+    <section class="column" aria-label="Shopping chat">
+      <div id="chatCard"></div>
+    </section>
+    <section class="column" aria-label="Purchase gate decisions">
+      <div id="gateCard"></div>
+    </section>
+  </div>
+  <div class="bottom">
+    <section class="card" aria-labelledby="ledgerTitle">
+      <div class="ledger-head"><div><h2 id="ledgerTitle">Ledger</h2><div class="subtle">Every gate decision in this session</div></div><label class="sr-only" for="ledgerFilter">Filter ledger</label><input id="ledgerFilter" type="search" placeholder="Quick filter ledger" autocomplete="off"></div>
+      <div id="ledgerGrid" aria-label="Purchase decision ledger"></div>
+    </section>
+    <section id="redteamCard" class="card" aria-labelledby="redteamTitle"></section>
+  </div>
+</main>
+<dialog id="receiptDialog" aria-labelledby="receiptTitle">
+  <div id="receiptContent"></div>
+</dialog>
 <script>
-  const s = localStorage.getItem("session") || (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "");
-  localStorage.setItem("session", s);
-  fetch("/api/state", {headers: {"X-Session": s}}).then(r => r.json())
-    .then(d => document.getElementById("state").textContent = JSON.stringify(d, null, 2))
-    .catch(e => document.getElementById("state").textContent = String(e));
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  let memorySid = "";
+  function makeUuid() {
+    if (globalThis.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (globalThis.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+    else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const h = [...bytes].map(x => x.toString(16).padStart(2, "0")).join("");
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+  function sessionId() {
+    try {
+      let sid = localStorage.getItem("mw_sid");
+      if (!sid) { sid = memorySid || makeUuid(); localStorage.setItem("mw_sid", sid); }
+      memorySid = sid;
+      return sid;
+    } catch {
+      if (!memorySid) memorySid = makeUuid();
+      return memorySid;
+    }
+  }
+  const sid = sessionId();
+  const prompts = ["Restock oat milk and eggs", "Buy a USB-C hub and a desk lamp", "Buy wireless earbuds", "Find me good wireless earbuds"];
+  const reasonWords = {
+    OK: "All mandate checks passed", BAD_MANDATE_SIGNATURE: "The mandate signature is invalid",
+    MANDATE_REVOKED: "The mandate was revoked", MANDATE_EXPIRED: "The mandate has expired",
+    AGENT_NOT_BOUND: "This agent is not bound to the mandate", BAD_AGENT_SIGNATURE: "The agent signature is invalid",
+    REPLAY: "This purchase request was already seen", STALE_INTENT: "The purchase request is too old",
+    UNKNOWN_ITEM: "The merchant or item is not in the catalog", PRICE_MISMATCH: "The catalog price does not match",
+    MERCHANT_NOT_ALLOWED: "This merchant is not allowed", CATEGORY_NOT_ALLOWED: "This category is not allowed",
+    OVER_BUDGET: "This purchase would exceed the budget", OVER_CAP: "This purchase needs owner approval"
+  };
+  const checkWords = {
+    mandate_signature: "Mandate signature", not_revoked: "Mandate is active", not_expired: "Mandate has not expired",
+    agent_bound: "Agent is bound to mandate", agent_signature: "Agent signature", fresh_nonce: "Request is not a replay",
+    fresh_intent: "Request timestamp is fresh", known_items: "Merchant and items are known", price: "Catalog price is correct",
+    merchant_allowed: "Merchant is allowed", category_allowed: "Category is allowed", budget: "Budget is available",
+    per_purchase_cap: "Purchase is within cap"
+  };
+  let config = null, catalog = null, state = null, errorMessage = "", busy = false, busyChat = false, stateRevision = 0;
+  let chatDraft = "", mandateDraft = null, showMandateForm = false, receiptData = null;
+  let gridApi = null, initialized = false;
+
+  const esc = value => String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  const dollars = value => {
+    const n = Number(value);
+    return Number.isFinite(n) ? new Intl.NumberFormat("en-US", {style:"currency", currency:"USD"}).format(n) : "$0.00";
+  };
+  const centsDollars = cents => dollars(Number(cents || 0) / 100);
+  const plainReason = code => reasonWords[code] || String(code || "No reason provided").toLowerCase().replaceAll("_", " ").replace(/^./, c => c.toUpperCase());
+  const dateTime = value => value ? new Date(Number(value) * 1000).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}) : "";
+  const categoryName = value => String(value || "").replaceAll("_", " ").replace(/\b\w/g, c => c.toUpperCase());
+  const statusName = value => ({paid:"Paid",pending:"Pending",blocked:"Blocked",refunded:"Refunded",declined:"Declined",failed:"Failed"}[value] || categoryName(value));
+  function itemName(merchant, sku) {
+    return catalog?.merchants?.[merchant]?.items?.[sku]?.name || sku || "Item";
+  }
+  function itemsSummary(decision) {
+    return (decision.items || []).map(item => `${item.name || itemName(decision.merchant, item.sku)} × ${item.qty}`).join(", ") || "No items listed";
+  }
+  function showError(message) {
+    errorMessage = String(message || "Something went wrong.");
+    const banner = $("errorBanner");
+    $("errorText").textContent = errorMessage;
+    banner.classList.add("visible");
+  }
+  function clearError() { errorMessage = ""; $("errorBanner").classList.remove("visible"); }
+  async function request(path, method = "GET", body = undefined) {
+    const headers = {"X-Session": sid};
+    const options = {method, headers};
+    if (body !== undefined) { headers["Content-Type"] = "application/json"; options.body = JSON.stringify(body); }
+    const response = await fetch(path, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || response.statusText || `Request failed (${response.status})`);
+    return data;
+  }
+  async function post(path, body = {}, isChat = false) {
+    if (busy) return null;
+    busy = true; busyChat = isChat; render();
+    try {
+      const data = await request(path, "POST", body);
+      if (data.state) { state = data.state; stateRevision++; }
+      clearError(); render();
+      return data;
+    } catch (error) {
+      showError(error.message); render();
+      return null;
+    } finally {
+      busy = false; busyChat = false; render();
+    }
+  }
+  async function refreshState() {
+    if (busy || document.visibilityState !== "visible") return;
+    const revision = stateRevision;
+    try { const data = await request("/api/state"); if (!busy && revision === stateRevision) { state = data.state; render(); } }
+    catch (error) { showError(error.message); }
+  }
+  function renderHeader() {
+    if (!config) return;
+    const paypalMock = !!config.mock?.paypal, aiMock = !!config.mock?.ai;
+    $("headerPills").innerHTML = `<span class="header-pill ${paypalMock ? "" : "live"}">${paypalMock ? "MOCK PayPal" : "PayPal sandbox"}</span><span class="header-pill ${aiMock ? "" : "live"}">${aiMock ? "MOCK AI" : "Live AI"}</span><span class="header-pill">${esc(config.model || "AI model")}</span>`;
+  }
+  function renderWallet() {
+    const wallet = state?.wallet;
+    $("walletCard").innerHTML = `<section class="card" aria-labelledby="walletTitle"><div class="card-head"><h2 id="walletTitle">Wallet</h2>${wallet ? '<span class="pill paid">Connected</span>' : '<span class="tag">Not connected</span>'}</div>${wallet ? `<p class="wallet-email">${esc(wallet.payer_email || "PayPal wallet")}</p><div class="subtle">${wallet.demo ? '<span class="tag">Demo wallet</span>' : "PayPal sandbox wallet"}${wallet.connected_at ? ` · connected ${esc(dateTime(wallet.connected_at))}` : ""}</div><div class="wallet-actions"><button class="btn secondary" type="button" data-action="disconnect" ${busy ? "disabled" : ""}>Disconnect</button></div>` : `<p class="subtle">Connect a PayPal sandbox wallet, or try the demo wallet to explore the gate.</p><div class="wallet-actions"><button class="btn" type="button" data-action="connect" ${busy ? "disabled" : ""}>Connect PayPal (sandbox)</button><button class="btn secondary" type="button" data-action="demo" ${busy ? "disabled" : ""}>Use demo wallet</button></div>`}</section>`;
+  }
+  function currentMandateDraft() {
+    if (mandateDraft) return mandateDraft;
+    const defaults = catalog?.default_mandate || {budget:15000, per_purchase_cap:6000, categories:[], merchants:[], expires_in_days:7};
+    return {budget:(Number(defaults.budget || 0) / 100).toFixed(2), cap:(Number(defaults.per_purchase_cap || 0) / 100).toFixed(2), expires:String(defaults.expires_in_days || 7), categories:[...(defaults.categories || [])], merchants:[...(defaults.merchants || [])]};
+  }
+  function mandateForm() {
+    const d = currentMandateDraft();
+    const categories = [...new Set(Object.values(catalog?.merchants || {}).map(m => m.category))].sort();
+    const merchants = Object.entries(catalog?.merchants || {});
+    const checks = (values, selected, name, title) => values.map(([value, label]) => `<label class="check-option"><input type="checkbox" name="${name}" value="${esc(value)}" ${selected.includes(value) ? "checked" : ""}><span>${esc(label)}</span></label>`).join("");
+    return `<form id="mandateForm"><div class="form-grid">
+      <div class="field"><label for="budget">Budget ($)</label><input id="budget" name="budget" type="number" min="0.01" step="0.01" required value="${esc(d.budget)}"></div>
+      <div class="field"><label for="cap">Per-purchase cap ($)</label><input id="cap" name="cap" type="number" min="0.01" step="0.01" required value="${esc(d.cap)}"></div>
+      <fieldset class="field full"><legend>Allowed categories</legend><div class="check-grid">${checks(categories.map(c => [c, categoryName(c)]), d.categories, "categories", "Categories")}</div></fieldset>
+      <fieldset class="field full"><legend>Allowed merchants <span class="subtle">(optional)</span></legend><p class="group-note">Leave all unchecked to allow any merchant in an allowed category.</p><div class="check-grid">${checks(merchants.map(([id,m]) => [id, m.name]), d.merchants, "merchants", "Merchants")}</div></fieldset>
+      <div class="field"><label for="expires">Expiry (days)</label><input id="expires" name="expires_in_days" type="number" min="1" max="365" step="1" required value="${esc(d.expires)}"></div>
+      <div class="field" style="align-self:end"><button class="btn" type="submit" ${busy || !state?.wallet ? "disabled" : ""}>Sign mandate</button></div>
+    </div>${state?.wallet ? "" : '<p class="subtle">Connect a wallet before signing a mandate.</p>'}</form>`;
+  }
+  function renderMandate() {
+    const md = state?.mandate;
+    let inner = "";
+    if (md?.status === "active") {
+      const body = md.body || {}, categories = (body.categories || []).map(categoryName).join(", ") || "None";
+      const merchants = (body.merchants || []).length ? body.merchants.map(id => catalog?.merchants?.[id]?.name || id).join(", ") : "Any merchant in allowed categories";
+      const remaining = Number(md.remaining || 0), budget = Number(md.budget || 0), spent = Number(md.spent || 0);
+      const pct = budget > 0 ? Math.max(0, Math.min(100, spent / budget * 100)) : 0;
+      inner = `<div class="card-head"><h2 id="mandateTitle">Active mandate</h2><span class="pill paid mandate-status">${esc(md.status)}</span></div>
+        <div class="budget-box"><div class="remaining-label">Remaining budget</div><div class="remaining">${dollars(remaining)}</div><div class="meter" role="meter" aria-label="Mandate budget spent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><span style="width:${pct}%"></span></div><div class="budget-foot"><span>${dollars(spent)} spent</span><span>${dollars(budget)} budget</span></div></div>
+        <div class="terms"><div class="term"><span>Per-purchase cap</span><strong>${dollars(md.cap)}</strong></div><div class="term"><span>Expires</span><strong>${esc(new Date(Number(body.expires_at || 0) * 1000).toLocaleDateString([], {month:"short", day:"numeric", year:"numeric"}))}</strong></div><div class="term"><span>Categories</span><strong>${esc(categories)}</strong></div><div class="term"><span>Merchants</span><strong>${esc(merchants)}</strong></div></div>
+        <div class="signature-row"><span class="subtle">Wallet signature</span><code title="${esc(md.sig)}">${esc((md.sig || "").slice(0, 16))}…</code><button class="btn secondary small" type="button" data-action="copy-signature" ${busy ? "disabled" : ""}>Copy</button></div>
+        <button class="btn danger" style="width:100%" type="button" data-action="revoke" ${busy ? "disabled" : ""}>Kill switch</button>`;
+    } else if (md && !showMandateForm) {
+      const expired = md.status === "expired";
+      inner = `<div class="card-head"><h2 id="mandateTitle">Mandate ended</h2><span class="pill ${expired ? "declined" : "blocked"}">${expired ? "Expired" : "Revoked"}</span></div><p class="subtle">${expired ? "This mandate expired. Purchases will not be authorized." : "The kill switch was used. Pending approvals were declined."}</p><button class="btn" type="button" data-action="new-mandate" ${busy ? "disabled" : ""}>New mandate</button>`;
+    } else {
+      inner = `<div class="card-head"><h2 id="mandateTitle">${md ? "New mandate" : "Set your mandate"}</h2><span class="tag">Owner signed</span></div><p class="subtle">Choose the limits the shopping agent must follow.</p>${mandateForm()}`;
+    }
+    $("mandateCard").innerHTML = `<section class="card" aria-labelledby="mandateTitle">${inner}</section>`;
+  }
+  function renderChat() {
+    const messages = state?.chat || [];
+    const wasAtBottom = !initialized || ($("chatMessages") && $("chatMessages").scrollHeight - $("chatMessages").scrollTop - $("chatMessages").clientHeight < 60);
+    const bubbles = messages.length ? messages.map(msg => {
+      const owner = msg.who === "owner";
+      const tools = !owner && (msg.tools || []).length ? `<div class="tool-chips" aria-label="Agent tools used">${msg.tools.map(t => `<span class="tool-chip">${esc(t)}</span>`).join("")}</div>` : "";
+      return `<div class="bubble-row ${owner ? "owner" : "agent"}"><span class="speaker">${owner ? "You" : "Shopping agent"}</span><div class="bubble">${esc(msg.text)}</div>${tools}</div>`;
+    }).join("") : '<div class="empty-chat">Ask the agent to shop from the catalog. Your signed mandate sets its limits.</div>';
+    const typing = busyChat ? '<div class="bubble-row agent" aria-label="Agent is responding"><span class="speaker">Shopping agent</span><span class="typing"><i></i><i></i><i></i></span></div>' : "";
+    $("chatCard").innerHTML = `<section class="card chat-card" aria-labelledby="chatTitle"><div class="card-head"><h2 id="chatTitle">Shopping chat</h2><span class="tag">${state?.mandate?.status === "active" ? "Mandate active" : "Gate always checks"}</span></div><div id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text">${bubbles}${typing}</div><div class="prompt-list" aria-label="Suggested prompts">${prompts.map(p => `<button class="prompt-chip" type="button" data-prompt="${esc(p)}" ${busy ? "disabled" : ""}>${esc(p)}</button>`).join("")}</div><form id="chatForm" class="chat-form"><label class="sr-only" for="chatInput">Message the shopping agent</label><textarea id="chatInput" name="message" maxlength="2000" placeholder="What would you like the agent to find?" ${busy ? "disabled" : ""}>${esc(chatDraft)}</textarea><button class="btn" type="submit" ${busy ? "disabled" : ""}>Send</button></form></section>`;
+    if (wasAtBottom) { const el = $("chatMessages"); el.scrollTop = el.scrollHeight; }
+  }
+  function statusClass(status) { return ["paid","pending","blocked","refunded","declined","failed"].includes(status) ? status : "declined"; }
+  function renderDecision(d) {
+    const checks = d.checks || [];
+    const checkItems = checks.map(c => `<li><span class="check-icon ${c.ok ? "ok" : "no"}" aria-label="${c.ok ? "Passed" : "Failed"}">${c.ok ? "✓" : "✗"}</span><span>${esc(checkWords[c.name] || categoryName(c.name))}</span></li>`).join("");
+    const reason = plainReason(d.reason);
+    let actions = "";
+    if (d.status === "pending") actions = `<button class="btn success small" type="button" data-action="stepup" data-id="${esc(d.id)}" data-approve="true" ${busy ? "disabled" : ""}>Approve</button><button class="btn secondary small" type="button" data-action="stepup" data-id="${esc(d.id)}" data-approve="false" ${busy ? "disabled" : ""}>Decline</button>`;
+    else if (d.status === "paid") actions = `<button class="btn secondary small" type="button" data-action="receipt" data-id="${esc(d.receipt_id || "")}" ${busy ? "disabled" : ""}>Receipt</button><button class="btn secondary small" type="button" data-action="refund" data-id="${esc(d.id)}" ${busy ? "disabled" : ""}>Refund</button>`;
+    return `<article class="decision"><div class="decision-top"><div class="decision-title"><strong>${esc(d.merchant_name || d.merchant || "Unknown merchant")}</strong><small>${esc(categoryName(d.category))} · ${esc(dateTime(d.created_at))}</small></div><span class="pill ${statusClass(d.status)}">${esc(statusName(d.status))}</span></div><div class="decision-amount">${dollars(d.amount)}</div><div class="item-lines">${esc(itemsSummary(d))}</div><div class="reason-line"><strong>${esc(reason)}</strong>${d.approved_by === "human" ? ' <span class="subtle">· owner approved</span>' : ""}</div><details class="check-details"><summary>Gate checks (${checks.filter(c => c.ok).length}/${checks.length || 13} passed)</summary><ul class="check-list">${checkItems || '<li class="subtle">No check details are available.</li>'}</ul></details>${actions ? `<div class="decision-actions">${actions}</div>` : ""}</article>`;
+  }
+  function renderGate() {
+    const decisions = state?.decisions || [];
+    const pending = decisions.filter(d => d.status === "pending").length;
+    $("gateCard").innerHTML = `<section class="card" aria-labelledby="gateTitle"><div class="card-head"><h2 id="gateTitle">Gate feed</h2>${pending ? `<span class="pill pending">${pending} awaiting approval</span>` : '<span class="tag">Newest first</span>'}</div>${decisions.length ? `<div class="gate-list">${decisions.map(renderDecision).join("")}</div>` : '<div class="empty-state">Purchase decisions will appear here after the agent makes a request.</div>'}</section>`;
+  }
+  function scoreNumber(value) { return value == null ? "—" : String(value); }
+  function renderRedteam() {
+    const rt = state?.redteam;
+    let result = '<div class="empty-state">Run a dry-run suite to check that the gate blocks hostile or out-of-scope requests.</div>';
+    if (rt) {
+      const agentMode = rt.mode === "agent";
+      const tiles = agentMode ? [[rt.agent_resisted,"Agent resisted"],[rt.gate_held,"Gate held"],[rt.controls_ok,"Controls OK"],[dollars(rt.moved_outside_mandate),"Money moved outside mandate"]] : [[rt.attacks_blocked,"Attacks blocked"],[rt.controls_ok,"Controls OK"],[dollars(rt.moved_outside_mandate),"Money moved outside mandate"]];
+      const tileHtml = tiles.map(([value,label]) => `<div class="headline-tile"><strong>${esc(scoreNumber(value))}</strong><span>${esc(label)}</span></div>`).join("");
+      if (agentMode) {
+        const cases = (rt.cases || []).map(c => `<article class="agent-case"><strong>${esc(categoryName(c.name))} <span class="${c.agent_pass && c.gate_pass ? "pass" : "fail"}">${c.agent_pass && c.gate_pass ? "PASS" : "FAIL"}</span></strong><p>${esc(c.prompt || "")}</p><p><b>Agent:</b> ${esc(c.agent_reply || "")}</p><div class="attempts">${(c.attempts || []).length ? c.attempts.map(a => `<span class="attempt">${esc(a.merchant)} · ${esc(a.outcome)} ${esc(a.reason)}</span>`).join("") : '<span class="attempt">No purchase attempt</span>'}</div></article>`).join("");
+        result = `<div class="headline-tiles four">${tileHtml}</div><div>${cases || '<p class="subtle">No cases returned.</p>'}</div>`;
+      } else {
+        const rows = (rt.cases || []).map(c => `<tr><td>${esc(categoryName(c.name))}</td><td>${esc(c.expected || "")}</td><td>${esc(c.outcome || "")} · ${esc(plainReason(c.reason))}</td><td class="${c.pass ? "pass" : "fail"}">${c.pass ? "PASS" : "FAIL"}</td></tr>`).join("");
+        result = `<div class="headline-tiles">${tileHtml}</div><div class="table-wrap"><table class="cases"><thead><tr><th>Case</th><th>Expected</th><th>Got</th><th>Pass</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      }
+    }
+    $("redteamCard").innerHTML = `<div class="redteam-head"><div><h2 id="redteamTitle">Red team</h2><p>Dry-run attacks against the signed mandate.</p></div></div><div class="redteam-actions"><button class="btn small" type="button" data-action="redteam" data-mode="gate" ${busy ? "disabled" : ""}>Attack the gate</button><button class="btn secondary small" type="button" data-action="redteam" data-mode="agent" ${busy ? "disabled" : ""}>Pressure-test the agent</button></div><p class="subtle" style="margin:0 0 8px">Agent mode uses live model calls.</p>${result}`;
+  }
+  function ledgerColumns() {
+    return [
+      {field:"created_at", headerName:"Time", minWidth:132, valueFormatter:p => dateTime(p.value), sort:"desc"},
+      {field:"merchant_name", headerName:"Merchant", minWidth:150},
+      {field:"category", headerName:"Category", minWidth:105, valueFormatter:p => categoryName(p.value)},
+      {field:"items_text", headerName:"Items", minWidth:160},
+      {field:"amount", headerName:"Amount", minWidth:95, valueFormatter:p => dollars(p.value)},
+      {field:"status", headerName:"Status", minWidth:95, valueFormatter:p => statusName(p.value)},
+      {field:"reason_text", headerName:"Reason", minWidth:170},
+      {field:"approved_by", headerName:"Approved by", minWidth:105, valueFormatter:p => p.value === "human" ? "Owner" : p.value || "—"},
+      {field:"capture_id", headerName:"PayPal capture id", minWidth:150}
+    ];
+  }
+  function renderLedger() {
+    if (!gridApi) return;
+    const rows = (state?.decisions || []).map(d => ({...d, items_text:itemsSummary(d), amount:Number(d.amount || 0), reason_text:plainReason(d.reason), capture_id:d.paypal?.capture_id || "—"}));
+    gridApi.setGridOption("rowData", rows);
+    const filter = $("ledgerFilter").value;
+    gridApi.setGridOption("quickFilterText", filter);
+  }
+  function render() {
+    if (!state) return;
+    renderHeader(); renderWallet(); renderMandate(); renderChat(); renderGate(); renderRedteam(); renderLedger();
+    if (receiptData && $("receiptDialog").open) renderReceipt();
+    initialized = true;
+  }
+  function initGrid() {
+    gridApi = agGrid.createGrid($("ledgerGrid"), {
+      theme: agGrid.themeQuartz.withParams(matchMedia("(prefers-color-scheme: dark)").matches ? {accentColor:"#53b4d4", foregroundColor:"#e1e9ed", borderColor:"#344650", headerBackgroundColor:"#1e303a", fontFamily:"system-ui, sans-serif", fontSize:12} : {accentColor:"#0f5c7a", foregroundColor:"#142a38", borderColor:"#dce5e9", headerBackgroundColor:"#f3f6f7", fontFamily:"system-ui, sans-serif", fontSize:12}),
+      columnDefs:ledgerColumns(), defaultColDef:{flex:1, minWidth:90, sortable:true, resizable:true}, rowData:[], domLayout:"autoHeight",
+      getRowId:p => p.data.id, animateRows:false, suppressCellFocus:false,
+      overlayNoRowsTemplate:'<span class="subtle">No purchase decisions yet.</span>'
+    });
+  }
+  async function loadReceipt(id) {
+    if (!id) return;
+    if (busy) return;
+    busy = true; render();
+    try {
+      receiptData = await request(`/api/receipts/${encodeURIComponent(id)}`);
+      renderReceipt();
+      const dialog = $("receiptDialog");
+      if (!dialog.open) dialog.showModal();
+      $("receiptClose").focus();
+    } catch (error) { showError(error.message); }
+    finally { busy = false; render(); }
+  }
+  function renderReceipt() {
+    if (!receiptData) return;
+    const {receipt:r, verify:v, keys} = receiptData;
+    const checks = [["Receipt signature",v.receipt_sig_ok],["Mandate signature",v.mandate_sig_ok],["Agent intent signature",v.intent_sig_ok],["Receipt hashes match",v.hashes_match]];
+    const verifyHtml = checks.map(([name,ok]) => `<div class="verify-check ${ok ? "ok" : "no"}">${ok ? "✓" : "✗"} ${esc(name)}</div>`).join("");
+    const merchant = catalog?.merchants?.[r.merchant]?.name || r.merchant;
+    const receiptItems = (r.items || []).map(i => `<li>${esc(itemName(r.merchant, i.sku))} × ${esc(i.qty)}</li>`).join("");
+    const decision = (state?.decisions || []).find(d => d.id === r.decision_id);
+    const isPaid = decision?.status === "paid";
+    $("receiptContent").innerHTML = `<div class="modal-head"><div><h2 id="receiptTitle">Verified receipt</h2><div class="subtle">${esc(merchant)} · ${esc(r.id)}</div></div><button id="receiptClose" class="dismiss" type="button" data-action="close-receipt" aria-label="Close receipt">×</button></div><div class="modal-body"><div class="verify-grid">${verifyHtml}</div><div class="remaining-label">Purchase total</div><div class="receipt-amount">${centsDollars(r.amount)}</div><div class="subtle">${esc(merchant)} · approved by ${esc(r.approved_by === "human" ? "owner" : r.approved_by || "mandate")}</div><ul>${receiptItems}</ul><div class="receipt-details"><div><span>PayPal order id</span><strong class="mono">${esc(r.paypal?.order_id || "—")}</strong></div><div><span>PayPal capture id</span><strong class="mono">${esc(r.paypal?.capture_id || "—")}</strong></div><div><span>Receipt id</span><strong class="mono">${esc(r.id)}</strong></div><div><span>Mandate id</span><strong class="mono">${esc(r.mandate_id)}</strong></div></div><div class="group-label">Public verification keys</div><div class="key-list">${Object.entries(keys || {}).map(([name,key]) => `<div class="key-row"><span>${esc(name)}</span><code>${esc(key)}</code></div>`).join("")}</div><details class="raw"><summary>Show signed receipt data</summary><pre>${esc(JSON.stringify(receiptData, null, 2))}</pre></details><div class="receipt-actions">${isPaid ? `<button class="btn danger" type="button" data-action="refund" data-id="${esc(r.decision_id)}" ${busy ? "disabled" : ""}>Refund</button>` : `<span class="tag">${esc(statusName(decision?.status || "paid"))}</span>`}</div></div>`;
+  }
+  async function copySignature() {
+    const sig = state?.mandate?.sig || "";
+    if (!sig) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(sig);
+      else { const area = document.createElement("textarea"); area.value = sig; area.style.position = "fixed"; area.style.opacity = "0"; document.body.append(area); area.select(); document.execCommand("copy"); area.remove(); }
+      errorMessage = "Signature copied to clipboard."; $("errorText").textContent = errorMessage; $("errorBanner").classList.add("visible"); $("errorBanner").style.color = "var(--green)"; $("errorBanner").style.background = "var(--green-bg)"; $("errorBanner").style.borderColor = "var(--line)";
+    } catch { showError("Could not copy the signature. Select and copy it from the mandate details."); }
+  }
+  function restoreBannerStyle() { $("errorBanner").style.color = ""; $("errorBanner").style.background = ""; $("errorBanner").style.borderColor = ""; }
+  document.addEventListener("input", event => {
+    if (event.target.id === "chatInput") chatDraft = event.target.value;
+    if (event.target.closest("#mandateForm")) {
+      const form = event.target.form;
+      mandateDraft = {budget:form.elements.budget.value, cap:form.elements.cap.value, expires:form.elements.expires_in_days.value,
+        categories:[...form.querySelectorAll('[name="categories"]:checked')].map(el => el.value),
+        merchants:[...form.querySelectorAll('[name="merchants"]:checked')].map(el => el.value)};
+    }
+    if (event.target.id === "ledgerFilter") renderLedger();
+  });
+  document.addEventListener("change", event => {
+    if (event.target.closest("#mandateForm")) {
+      const form = event.target.form;
+      mandateDraft = {budget:form.elements.budget.value, cap:form.elements.cap.value, expires:form.elements.expires_in_days.value,
+        categories:[...form.querySelectorAll('[name="categories"]:checked')].map(el => el.value),
+        merchants:[...form.querySelectorAll('[name="merchants"]:checked')].map(el => el.value)};
+    }
+  });
+  document.addEventListener("submit", async event => {
+    if (event.target.id === "mandateForm") {
+      event.preventDefault();
+      const form = event.target;
+      const data = await post("/api/mandate", {budget:Number(form.elements.budget.value), per_purchase_cap:Number(form.elements.cap.value), expires_in_days:Number(form.elements.expires_in_days.value), categories:[...form.querySelectorAll('[name="categories"]:checked')].map(el => el.value), merchants:[...form.querySelectorAll('[name="merchants"]:checked')].map(el => el.value)});
+      if (data) { mandateDraft = null; showMandateForm = false; render(); }
+    } else if (event.target.id === "chatForm") {
+      event.preventDefault();
+      const message = chatDraft.trim();
+      if (!message) return;
+      const data = await post("/api/chat", {message}, true);
+      if (data) { chatDraft = ""; render(); $("chatInput")?.focus(); }
+    }
+  });
+  document.addEventListener("click", async event => {
+    const prompt = event.target.closest("[data-prompt]");
+    if (prompt) { chatDraft = prompt.dataset.prompt; render(); $("chatInput").focus(); return; }
+    const button = event.target.closest("[data-action]");
+    if (!button) return;
+    const action = button.dataset.action;
+    if (action === "dismiss-error") { clearError(); restoreBannerStyle(); return; }
+    if (action === "close-receipt") { $("receiptDialog").close(); return; }
+    if (action === "copy-signature") { await copySignature(); return; }
+    if (action === "new-mandate") { showMandateForm = true; mandateDraft = null; render(); return; }
+    if (action === "receipt") { await loadReceipt(button.dataset.id); return; }
+    if (busy) return;
+    if (action === "connect") {
+      const data = await post("/api/wallet/connect", {});
+      if (data?.approve_url) window.location.assign(data.approve_url);
+    } else if (action === "demo") await post("/api/wallet/demo", {});
+    else if (action === "disconnect") { const data = await post("/api/wallet/disconnect", {}); if (data) { mandateDraft = null; showMandateForm = false; } }
+    else if (action === "revoke") { await post("/api/mandate/revoke", {}); }
+    else if (action === "stepup") await post(`/api/stepup/${encodeURIComponent(button.dataset.id)}`, {approve:button.dataset.approve === "true"});
+    else if (action === "refund") {
+      const data = await post(`/api/purchases/${encodeURIComponent(button.dataset.id)}/refund`, {});
+      if (data && receiptData) renderReceipt();
+    } else if (action === "redteam") await post("/api/redteam", {mode:button.dataset.mode});
+  });
+  $("receiptDialog").addEventListener("click", event => { if (event.target === $("receiptDialog")) $("receiptDialog").close(); });
+
+  async function start() {
+    try {
+      initGrid();
+      const [cfg, cat, st] = await Promise.all([request("/api/config"), request("/api/catalog"), request("/api/state")]);
+      config = cfg; catalog = cat; state = st.state; render();
+      setInterval(refreshState, 5000);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refreshState(); });
+    } catch (error) { showError(error.message); }
+  }
+  start();
+})();
 </script>
 </body>
 </html>
