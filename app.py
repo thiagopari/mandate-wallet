@@ -162,7 +162,8 @@ def _charge_and_receipt(session, md, intent, decision_id, approved_by):
     try:
         pp = paypal.charge(wallet["vault_id"], intent["amount"], custom_id=receipt_id,
                            description=desc, request_id=decision_id)
-    except paypal.PayPalError:
+    except paypal.PayPalError as e:
+        print(f"charge failed for {decision_id}: {e}", flush=True)  # PayPal's reason, for the Render log
         return "failed", None, None, None
     receipt = {
         "id": receipt_id, "decision_id": decision_id, "mandate_id": md["id"],
@@ -332,7 +333,7 @@ def wallet_disconnect(request: Request):
     with lock_for(session):
         _revoke(session)
         w = get_wallet(session)
-        if w and w["vault_id"] and not w["demo"]:
+        if w and w["vault_id"] and not w["demo"] and w["vault_id"] != DEMO_VAULT_ID:  # never delete the shared demo vault
             try:
                 paypal.delete_token(w["vault_id"])
             except paypal.PayPalError:
