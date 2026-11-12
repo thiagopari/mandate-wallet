@@ -27,6 +27,7 @@ else:
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
 DEMO_VAULT_ID = os.environ.get("DEMO_VAULT_ID", "DEMO-VAULT")
+DEMO_VAULT_SOURCE = os.environ.get("DEMO_VAULT_SOURCE", "paypal")  # "card": sandbox test card vaulted server-side
 HERE = os.path.dirname(os.path.abspath(__file__))
 CATALOG = json.load(open(os.path.join(HERE, "catalog.json")))
 
@@ -161,7 +162,8 @@ def _charge_and_receipt(session, md, intent, decision_id, approved_by):
     desc = f"Mandate Wallet: {intent['merchant']} ({decision_id})"
     try:
         pp = paypal.charge(wallet["vault_id"], intent["amount"], custom_id=receipt_id,
-                           description=desc, request_id=decision_id)
+                           description=desc, request_id=decision_id,
+                           source=DEMO_VAULT_SOURCE if wallet["demo"] else "paypal")
     except paypal.PayPalError as e:
         print(f"charge failed for {decision_id}: {e}", flush=True)  # PayPal's reason, for the Render log
         return "failed", None, None, None

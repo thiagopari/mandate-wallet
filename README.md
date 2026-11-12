@@ -83,6 +83,7 @@ flow (connect, mandate, chat, gate, receipts, red team) runs with no network and
 | `BASE_URL` | public base for PayPal return/cancel URLs, default `http://localhost:8000`. |
 | `DB_PATH` | SQLite path, default `mandate.db`. |
 | `DEMO_VAULT_ID` | vault id used by the one-click demo wallet. |
+| `DEMO_VAULT_SOURCE` | `paypal` (default) or `card`. The live demo wallet is a PayPal sandbox test card vaulted server-side (Vault v3), so nobody needs a sandbox login; its purchases are real sandbox charges. |
 | `DAILY_MODEL_CALLS` | daily cap on model calls, default `200`. |
 
 ## More

@@ -87,13 +87,14 @@ def create_payment_token(setup_id):
             "payer_email": src.get("email_address", "")}
 
 
-def charge(vault_id, amount, custom_id, description, request_id):
+def charge(vault_id, amount, custom_id, description, request_id, source="paypal"):
     """Charge the vaulted wallet with no buyer present (Orders v2, auto-captured).
+    source is the vault token's type: "paypal" (a connected wallet) or "card" (the demo's test card).
     custom_id and invoice_id are the receipt id; request_id is the decision id (idempotency).
     Returns {order_id, capture_id, status}; anything but a completed capture raises."""
     o = _call("POST", "/v2/checkout/orders", {
         "intent": "CAPTURE",
-        "payment_source": {"paypal": {"vault_id": vault_id}},
+        "payment_source": {source: {"vault_id": vault_id}},
         "purchase_units": [{
             "amount": {"currency_code": "USD", "value": money(amount)},
             "custom_id": custom_id,
